@@ -4,7 +4,6 @@ import me.xaxis.reportplus.player.PlayerDataManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Locale;
@@ -24,11 +23,11 @@ public final class ReportsTabCompleter implements TabCompleter {
     }
 
     @Override
-    public @NotNull List<String> onTabComplete(
-            @NotNull CommandSender sender,
-            @NotNull Command command,
-            @NotNull String alias,
-            @NotNull String[] args
+    public  List<String> onTabComplete(
+             CommandSender sender,
+            Command command,
+             String alias,
+             String[] args
     ) {
 
         if (args.length == 1) {

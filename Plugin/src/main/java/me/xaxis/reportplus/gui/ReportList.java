@@ -15,7 +15,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Comparator;
 import java.util.Date;
@@ -101,7 +100,7 @@ public final class ReportList implements InventoryHolder {
     }
 
     @Override
-    public @NotNull Inventory getInventory() {
+    public  Inventory getInventory() {
         return inventory;
     }
 
@@ -319,7 +318,6 @@ public final class ReportList implements InventoryHolder {
         ItemMeta meta = item.getItemMeta();
 
         if (meta != null) {
-            meta.setEnchantmentGlintOverride(active);
             item.setItemMeta(meta);
         }
 

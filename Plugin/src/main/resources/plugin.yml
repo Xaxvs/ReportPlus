@@ -3,7 +3,7 @@ name: ReportPlus
 description: Report plugin
 author: Xaxis
 version: 1
-api-version: 1.21
+api-version: 1.20
 commands:
   report:
     description: Report a player
