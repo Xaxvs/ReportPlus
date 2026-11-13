@@ -4,10 +4,9 @@ import org.bukkit.ChatColor;
 
 public final class Utils {
 
-    private Utils() {}
+  private Utils() {}
 
-    public static String chat(String s) {
-        return ChatColor.translateAlternateColorCodes('&', s);
-    }
-
+  public static String chat(String s) {
+    return ChatColor.translateAlternateColorCodes('&', s);
+  }
 }

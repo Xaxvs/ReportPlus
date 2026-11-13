@@ -1,5 +1,6 @@
 package me.xaxis.reportplus.gui;
 
+import java.util.UUID;
 import me.xaxis.reportplus.enums.Lang;
 import me.xaxis.reportplus.file.LangConfig;
 import me.xaxis.reportplus.reports.*;
@@ -11,132 +12,107 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 
-import java.util.UUID;
-
 public class ReportSelection implements InventoryHolder {
 
-    private static final String GUI_TITLE = "Report Selection";
-    private static final int GUI_SIZE = 18;
+  private static final String GUI_TITLE = "Report Selection";
+  private static final int GUI_SIZE = 18;
 
-    private final ReportTypeManager reportTypeManager;
-    private final ReportService reportService;
-    private final LangConfig langConfig;
-    private final Inventory inventory;
-    private final String targetName, reporterName;
-    private final UUID targetUUID, reporterUUID;
+  private final ReportTypeManager reportTypeManager;
+  private final ReportService reportService;
+  private final LangConfig langConfig;
+  private final Inventory inventory;
+  private final String targetName, reporterName;
+  private final UUID targetUUID, reporterUUID;
 
-    public ReportSelection(
-            LangConfig langConfig,
-            ReportTypeManager reportTypeManager,
-            ReportService reportService,
-            String targetName,
-            String reporterName,
-            UUID targetUUID,
-            UUID reporterUUID)
-    {
-        this.reportTypeManager = reportTypeManager;
-        this.reportService = reportService;
-        this.langConfig = langConfig;
-        this.targetName = targetName;
-        this.reporterName = reporterName;
-        this.targetUUID = targetUUID;
-        this.reporterUUID = reporterUUID;
+  public ReportSelection(
+      LangConfig langConfig,
+      ReportTypeManager reportTypeManager,
+      ReportService reportService,
+      String targetName,
+      String reporterName,
+      UUID targetUUID,
+      UUID reporterUUID) {
+    this.reportTypeManager = reportTypeManager;
+    this.reportService = reportService;
+    this.langConfig = langConfig;
+    this.targetName = targetName;
+    this.reporterName = reporterName;
+    this.targetUUID = targetUUID;
+    this.reporterUUID = reporterUUID;
 
-        inventory = Bukkit.createInventory(this, GUI_SIZE, GUI_TITLE);
-        createItems();
+    inventory = Bukkit.createInventory(this, GUI_SIZE, GUI_TITLE);
+    createItems();
+  }
+
+  @Override
+  public Inventory getInventory() {
+    return inventory;
+  }
+
+  public void openGUI(Player player) {
+    if (!player.getUniqueId().equals(reporterUUID)) return;
+    player.openInventory(inventory);
+  }
+
+  private void createItems() {
+    for (ReportType type : reportTypeManager.getReportTypes()) {
+      inventory.setItem(
+          type.slot(),
+          new ItemUtils(type.material())
+              .setTitle(type.displayName(), true)
+              .lore(type.lore())
+              .build());
     }
 
-    @Override
-    public Inventory getInventory() {
-        return inventory;
-    }
-
-    public void openGUI(Player player){
-        if(!player.getUniqueId().equals(reporterUUID)) return;
-        player.openInventory(inventory);
-    }
-
-    private void createItems() {
-        for(ReportType type : reportTypeManager.getReportTypes()) {
-            inventory.setItem(type.slot(), new ItemUtils(type.material()).setTitle(type.displayName(), true).lore(type.lore()).build());
-        }
-
-        inventory.setItem(GUI_SIZE - 1, new ItemUtils(Material.BARRIER)
+    inventory.setItem(
+        GUI_SIZE - 1,
+        new ItemUtils(Material.BARRIER)
             .setTitle(langConfig.getString(Lang.GUI_SELECTION_ITEM_CANCEL), true)
             .lore(langConfig.getStringList(Lang.GUI_SELECTION_ITEM_CANCEL_LORE))
-            .build()
-        );
+            .build());
+  }
+
+  public void onClick(InventoryClickEvent event) {
+    if (!(event.getWhoClicked() instanceof Player player)) return;
+    if (event.getCurrentItem() == null || event.getCurrentItem().getType() == Material.AIR) return;
+    if (!player.getUniqueId().equals(reporterUUID)) return;
+    if (event.getRawSlot() == GUI_SIZE - 1) {
+      player.closeInventory();
+      return;
     }
+    for (ReportType type : reportTypeManager.getReportTypes()) {
+      if (event.getRawSlot() != type.slot()) continue;
+      ReportService.CreateResult result =
+          reportService.createReport(targetUUID, targetName, reporterUUID, reporterName, type.id());
 
-    public void onClick(InventoryClickEvent event){
-        if(!(event.getWhoClicked() instanceof Player player)) return;
-        if(event.getCurrentItem() == null || event.getCurrentItem().getType() == Material.AIR) return;
-        if(!player.getUniqueId().equals(reporterUUID)) return;
-        if(event.getRawSlot() == GUI_SIZE - 1){
-            player.closeInventory();
-            return;
-        }
-        for(ReportType type : reportTypeManager.getReportTypes()) {
-            if(event.getRawSlot() != type.slot()) continue;
-            ReportService.CreateResult result =
-                    reportService.createReport(
-                            targetUUID,
-                            targetName,
-                            reporterUUID,
-                            reporterName,
-                            type.id()
-                    );
+      switch (result.status()) {
+        case SUCCESS -> {
+          player.sendMessage(
+              langConfig.getString(Lang.SUCCESSFUL_REPORT, targetName, type.displayName()));
 
-            switch (result.status()) {
-
-                case SUCCESS -> {
-                    player.sendMessage(
-                            langConfig.getString(
-                                    Lang.SUCCESSFUL_REPORT,
-                                    targetName,
-                                    type.displayName()
-                            )
-                    );
-
-                    player.closeInventory();
-                }
-
-                case COOLDOWN -> {
-                    player.sendMessage(
-                            langConfig.getString(
-                                    Lang.REPORT_COOLDOWN,
-                                    result.cooldownSeconds()
-                            )
-                    );
-
-                    player.closeInventory();
-                }
-
-                case SELF_REPORT -> {
-                    player.sendMessage(
-                            langConfig.getString(
-                                    Lang.CANNOT_REPORT_SELF
-                            )
-                    );
-
-                    player.closeInventory();
-                }
-
-                case INVALID_REPORT_TYPE,
-                     PLAYER_DATA_MISSING -> {
-
-                    player.sendMessage(
-                            langConfig.getString(
-                                    Lang.REPORT_FAILED
-                            )
-                    );
-
-                    player.closeInventory();
-                }
-            }
-
-            break;
+          player.closeInventory();
         }
 
+        case COOLDOWN -> {
+          player.sendMessage(langConfig.getString(Lang.REPORT_COOLDOWN, result.cooldownSeconds()));
+
+          player.closeInventory();
+        }
+
+        case SELF_REPORT -> {
+          player.sendMessage(langConfig.getString(Lang.CANNOT_REPORT_SELF));
+
+          player.closeInventory();
+        }
+
+        case INVALID_REPORT_TYPE, PLAYER_DATA_MISSING -> {
+          player.sendMessage(langConfig.getString(Lang.REPORT_FAILED));
+
+          player.closeInventory();
+        }
+      }
+
+      break;
     }
+  }
 }
